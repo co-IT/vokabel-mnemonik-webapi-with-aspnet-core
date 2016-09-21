@@ -10,13 +10,15 @@ namespace VokabelMnemonik.Hypermedia
   {
     public Entity CreateEntryPoint(IUrlHelper urls)
     {
+      var entryPointRoot = new Link(urls.RouteUrl("Route_EntryPoint"), "self") { Title = "Entry Point" };
+      var entryPointVokabeln = new Link(urls.RouteUrl("Route_Vokabeln"), "vokabeln") { Title = "Vokabeln" };
       return new Entity
       {
         Title = "Entry Point",
         Links = new[]
         {
-          new Link(urls.RouteUrl("Root_EntryPoint"), "self"),
-          new Link(urls.RouteUrl("Route_EntryPoint"), "vokabeln")
+          entryPointRoot,
+          entryPointVokabeln
         }
       };
     }
