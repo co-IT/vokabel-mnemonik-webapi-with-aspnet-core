@@ -38,8 +38,8 @@ namespace VokabelMnemonik
       // Add framework services.
       services.AddApplicationInsightsTelemetry(Configuration);
 
+      services.AddCors();
       services.AddMvc();
-      services.AddCors(options => options.AddPolicy("CORS_POLICY", p => p.AllowAnyOrigin()));
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline
@@ -52,8 +52,13 @@ namespace VokabelMnemonik
 
       app.UseApplicationInsightsExceptionTelemetry();
 
+      app.UseCors(builder =>
+        builder.WithOrigins("http://localhost:4200")
+          .AllowAnyMethod()
+          .AllowAnyHeader()
+        );
+
       app.UseMvc();
-      app.UseCors("CORS_POLICY");
     }
   }
 }
