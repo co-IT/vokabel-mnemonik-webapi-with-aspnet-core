@@ -7,7 +7,7 @@ namespace VokabelMnemonik.Controllers
   [Route("[controller]")]
   public class EntryPointController : Controller
   {
-    [HttpGet("", Name = "Root_EntryPoint")]
+    [HttpGet("", Name = "Route_EntryPoint")]
     public Entity Get()
     {
       var document = new DocumentFactory();
