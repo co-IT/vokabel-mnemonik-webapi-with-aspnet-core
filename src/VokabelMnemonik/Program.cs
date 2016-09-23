@@ -23,3 +23,10 @@ namespace VokabelMnemonik
         }
     }
 }
+
+
+//Children  
+//  1 Mia             - Youngest -> Second-Child -> Oldest
+//  2 Amy             - Youngest -> Second-Child
+//  3 Jennifer        - Youngest 
+//  4 Mia?

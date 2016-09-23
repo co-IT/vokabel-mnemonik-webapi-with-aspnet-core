@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using VokabelMnemonik.Hypermedia;
 
 namespace VokabelMnemonik
 {
@@ -16,14 +16,14 @@ namespace VokabelMnemonik
     public Startup(IHostingEnvironment env)
     {
       var builder = new ConfigurationBuilder()
-          .SetBasePath(env.ContentRootPath)
-          .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-          .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
+        .SetBasePath(env.ContentRootPath)
+        .AddJsonFile("appsettings.json", true, true)
+        .AddJsonFile($"appsettings.{env.EnvironmentName}.json", true);
 
       if (env.IsEnvironment("Development"))
       {
         // This will push telemetry data through Application Insights pipeline faster, allowing you to view results immediately.
-        builder.AddApplicationInsightsSettings(developerMode: true);
+        builder.AddApplicationInsightsSettings(true);
       }
 
       builder.AddEnvironmentVariables();
@@ -38,6 +38,8 @@ namespace VokabelMnemonik
       // Add framework services.
       services.AddApplicationInsightsTelemetry(Configuration);
 
+      services.AddSingleton<IRouteRegistrations, RouteRegistrations>();
+      services.AddSingleton(new OutboundLinkResolver(new Uri("http://localhost"), new RouteRegistrations()));
       services.AddCors();
       services.AddMvc();
     }
@@ -58,7 +60,59 @@ namespace VokabelMnemonik
           .AllowAnyHeader()
         );
 
-      app.UseMvc();
+      Action<IRouteBuilder> configureRoutes = routes =>
+      {
+        new RouteRegistrations().Routes().ToList().ForEach(route => routes.MapRoute(
+          route.Name,
+          route.Template,
+          new {controller = route.Controller, action = route.Action}
+          ));
+      };
+
+      app.UseMvc(configureRoutes);
     }
+  }
+
+  public interface IRouteRegistrations
+  {
+    IEnumerable<RouteRegistration> Routes();
+  }
+
+  public class RouteRegistrations : IRouteRegistrations
+  {
+    public IEnumerable<RouteRegistration> Routes()
+    {
+      yield return new RouteRegistration
+      {
+        Name = "Vokabeln_GetAll",
+        Template = "vokabeln",
+        Controller = "Vokabeln",
+        Action = "GetAll"
+      };
+
+      yield return new RouteRegistration
+      {
+        Name = "Vokabeln_GetById",
+        Template = "vokabeln",
+        Controller = "Vokabeln",
+        Action = "GetById"
+      };
+
+      yield return new RouteRegistration
+      {
+        Name = "Vokabeln_Anlegen",
+        Template = "vokabeln",
+        Controller = "Vokabeln",
+        Action = "Anlegen"
+      };
+    }
+  }
+
+  public class RouteRegistration
+  {
+    public string Name { set; get; }
+    public string Template { set; get; }
+    public string Controller { set; get; }
+    public string Action { set; get; }
   }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using VokabelMnemonik.Controllers;
 using VokabelMnemonik.Domain;
 
@@ -20,6 +21,11 @@ namespace VokabelMnemonik.Repositories
       }
     };
 
+    public IEnumerable<Vokabel> GetAll()
+    {
+      return Vokabeln;
+    }
+
     public Vokabel GetBy(int key)
     {
       return Vokabeln.SingleOrDefault(v => v.Id == key);
@@ -39,6 +45,18 @@ namespace VokabelMnemonik.Repositories
 
       Vokabeln.Add(vok);
       return vok;
+    }
+
+    public void Delete(Vokabel vokabel)
+    {
+      var forDelete = Vokabeln.SingleOrDefault(v => v.Id == vokabel.Id);
+
+      if (forDelete == null)
+      {
+        return;
+      }
+
+      Vokabeln.Remove(forDelete);
     }
   }
 }
