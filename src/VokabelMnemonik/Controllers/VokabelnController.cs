@@ -1,10 +1,6 @@
-﻿using System.Collections.Generic;
-using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SirenDotNet;
-using VokabelMnemonik.Domain;
 using VokabelMnemonik.Hypermedia;
-using VokabelMnemonik.MappingProfiles;
 using VokabelMnemonik.Repositories;
 
 namespace VokabelMnemonik.Controllers
@@ -12,43 +8,45 @@ namespace VokabelMnemonik.Controllers
   [Route("[controller]")]
   public class VokabelnController : Controller
   {
-    readonly IMapper _mapper;
     readonly VokabelnRepository _vokabeln;
 
     public VokabelnController()
     {
       _vokabeln = new VokabelnRepository();
-      _mapper = new MapperConfiguration(cfg => { cfg.AddProfile<VokabelHypermediaMapping>(); }).CreateMapper();
     }
 
-    [HttpGet("", Name = "Route_Vokabeln")]
-    public IHypermedia<Vokabel> GetAll()
+    [HttpGet("")]
+    public object GetAll()
     {
-      //HyperMediaFormatter
-      return _mapper.Map<IEnumerable<Vokabel>, Hypermedia<Vokabel>>(_vokabeln.GetAll());
+      return _vokabeln.GetAll();
     }
 
-    [HttpGet("{key}", Name = "Route_Vokabeln_Entities")]
+    [HttpGet("{key}")]
     // TODO: IHyperMedia zurückgeben
     public Entity GetById(int key)
     {
       var document = new DocumentFactory();
-      // Mapping von Vokabel auf IHyperMedia durchführen (MediaTypeFormatter)
-      // -> Das ist die Aufgabe des Controllers
-      // Tipp: AutoMapper verwenden
       var vokabel = new VokabelnRepository();
 
       return document.CreateVokabel(Url, vokabel.GetBy(key));
     }
 
-    [HttpPost("anlegen", Name = "Route_Vokabeln_Anlegen")]
-    public ActionResult Anlegen([FromBody] VokabelAnlegen vokabel)
+    [HttpPost]
+    public ActionResult VokabelAnlegen([FromBody] VokabelAnlegen vokabel)
     {
       var vokabeln = new VokabelnRepository();
       var created = vokabeln.Create(vokabel);
 
-      return Created(Url.RouteUrl("Route_Vokabeln_Entities", new {key = created.Id}),
-        null);
+      return Created(Url.RouteUrl("Route_Vokabeln_Entities", new {key = created.Id}), null);
+    }
+
+    [HttpPost("test_anlegen")]
+    public ActionResult TestAnlegen([FromBody] VokabelAnlegen vokabel)
+    {
+      var vokabeln = new VokabelnRepository();
+      var created = vokabeln.Create(vokabel);
+
+      return Created(Url.RouteUrl("Route_Vokabeln_Entities", new {key = created.Id}), null);
     }
   }
 

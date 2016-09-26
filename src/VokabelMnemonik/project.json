@@ -18,7 +18,8 @@
     "Microsoft.Extensions.Options.ConfigurationExtensions": "1.0.0",
     "SirenDotNet": "1.1.32",
     "AutoMapper": "5.1.1",
-    "Tavis.UriTemplates": "1.1.0"
+    "Tavis.UriTemplates": "1.1.0",
+    "Autofac.Extensions.DependencyInjection": "4.0.0"
   },
 
   "tools": {

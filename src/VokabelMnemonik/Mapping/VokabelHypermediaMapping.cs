@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
+using VokabelMnemonik.Controllers;
 using VokabelMnemonik.Domain;
 using VokabelMnemonik.Hypermedia;
 
@@ -11,7 +12,7 @@ namespace VokabelMnemonik.MappingProfiles
   {
     public VokabelHypermediaMapping()
     {
-      var routeRegistration = new RouteRegistrations().Routes();
+      var routeRegistration = new VokabelnControllerRoutes().Routes();
       var baseUri = new Uri("http://localhost");
 
       //Id { get; set; }

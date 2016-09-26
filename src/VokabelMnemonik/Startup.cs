@@ -1,18 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using VokabelMnemonik.Hypermedia;
+using VokabelMnemonik.Mapping;
 
 namespace VokabelMnemonik
 {
   public class Startup
   {
+    IContainer _container;
+    IMvcBuilder _mvcBuilder;
+
+
     public Startup(IHostingEnvironment env)
     {
       var builder = new ConfigurationBuilder()
@@ -20,11 +26,8 @@ namespace VokabelMnemonik
         .AddJsonFile("appsettings.json", true, true)
         .AddJsonFile($"appsettings.{env.EnvironmentName}.json", true);
 
-      if (env.IsEnvironment("Development"))
-      {
-        // This will push telemetry data through Application Insights pipeline faster, allowing you to view results immediately.
+      if (env.IsDevelopment())
         builder.AddApplicationInsightsSettings(true);
-      }
 
       builder.AddEnvironmentVariables();
       Configuration = builder.Build();
@@ -33,15 +36,50 @@ namespace VokabelMnemonik
     public IConfigurationRoot Configuration { get; }
 
     // This method gets called by the runtime. Use this method to add services to the container
-    public void ConfigureServices(IServiceCollection services)
+    public IServiceProvider ConfigureServices(IServiceCollection services)
     {
       // Add framework services.
       services.AddApplicationInsightsTelemetry(Configuration);
-
-      services.AddSingleton<IRouteRegistrations, RouteRegistrations>();
-      services.AddSingleton(new OutboundLinkResolver(new Uri("http://localhost"), new RouteRegistrations()));
       services.AddCors();
-      services.AddMvc();
+      _mvcBuilder = services.AddMvc();
+
+      var containerBuilder = new ContainerBuilder();
+      containerBuilder.RegisterAssemblyModules(Assembly.GetEntryAssembly());
+      containerBuilder.Populate(services);
+
+      _container = containerBuilder.Build();
+
+      DebugRegistrations();
+
+      var mapperResolver = _container.Resolve<IResolveMapper>();
+      var formatter = new VokabelToSirenAsJsonFormatter(mapperResolver);
+
+      _mvcBuilder.AddMvcOptions(options =>
+      {
+        options.OutputFormatters.Add(formatter);
+      });
+
+      return new AutofacServiceProvider(_container);
+    }
+
+    void DebugRegistrations()
+    {
+      _container.ComponentRegistry.Registrations.ToList().ForEach(reg =>
+      {
+        reg.Target.Services.ToList().ForEach(tserv =>
+        {
+          var desc = tserv.Description;
+          if (desc.ToLower().StartsWith("vokabelmnemonik"))
+            Console.WriteLine(desc);
+        });
+
+        reg.Services.ToList().ForEach(serv =>
+        {
+          var desc = serv.Description;
+          if (desc.ToLower().StartsWith("vokabelmnemonik"))
+            Console.WriteLine(desc);
+        });
+      });
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline
@@ -60,59 +98,24 @@ namespace VokabelMnemonik
           .AllowAnyHeader()
         );
 
-      Action<IRouteBuilder> configureRoutes = routes =>
+      var routeConfigurations = RouteConfigurations();
+      app.UseMvc(routeConfigurations);
+    }
+
+    Action<IRouteBuilder> RouteConfigurations()
+    {
+      var allRoutes = _container.Resolve<IRouteRegistry>().Routes();
+
+      Action<IRouteBuilder> routeConfigurations = routes =>
       {
-        new RouteRegistrations().Routes().ToList().ForEach(route => routes.MapRoute(
+        allRoutes.ToList().ForEach(route => routes.MapRoute(
           route.Name,
           route.Template,
           new {controller = route.Controller, action = route.Action}
           ));
       };
 
-      app.UseMvc(configureRoutes);
+      return routeConfigurations;
     }
-  }
-
-  public interface IRouteRegistrations
-  {
-    IEnumerable<RouteRegistration> Routes();
-  }
-
-  public class RouteRegistrations : IRouteRegistrations
-  {
-    public IEnumerable<RouteRegistration> Routes()
-    {
-      yield return new RouteRegistration
-      {
-        Name = "Vokabeln_GetAll",
-        Template = "vokabeln",
-        Controller = "Vokabeln",
-        Action = "GetAll"
-      };
-
-      yield return new RouteRegistration
-      {
-        Name = "Vokabeln_GetById",
-        Template = "vokabeln",
-        Controller = "Vokabeln",
-        Action = "GetById"
-      };
-
-      yield return new RouteRegistration
-      {
-        Name = "Vokabeln_Anlegen",
-        Template = "vokabeln",
-        Controller = "Vokabeln",
-        Action = "Anlegen"
-      };
-    }
-  }
-
-  public class RouteRegistration
-  {
-    public string Name { set; get; }
-    public string Template { set; get; }
-    public string Controller { set; get; }
-    public string Action { set; get; }
   }
 }
